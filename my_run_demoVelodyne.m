@@ -1,4 +1,5 @@
-function run_demoVelodyne (base_dir,calib_dir)
+function my_run_demoVelodyne (base_dir,calib_dir)
+%这个程序能从点云中取出一个立方体，需要输入的参数是该立方体的xyz阈值。
 % KITTI RAW DATA DEVELOPMENT KIT
 % 
 % Demonstrates projection of the velodyne points into the image plane
@@ -19,7 +20,7 @@ if nargin<2
   calib_dir = './data/2011_09_26';%鏍囧畾鏂囦欢璺緞
 end
 cam       = 2; % 绗簩涓浉鏈?
-frame     = 92; % 甯ф暟
+frame     = 0; % 甯ф暟
 
 % load calibration
 calib = loadCalibrationCamToCam(fullfile(calib_dir,'calib_cam_to_cam.txt'));
@@ -27,7 +28,7 @@ Tr_velo_to_cam = loadCalibrationRigid(fullfile(calib_dir,'calib_velo_to_cam.txt'
 
 % compute projection matrix velodyne->image plane
 R_cam_to_rect = eye(4);
-R_cam_to_rect(1:3,1:3) = calib.R_rect{1};
+R_cam_to_rect(1:3,1:3) = calib.R_rect{3};
 P_velo_to_img = calib.P_rect{cam+1}*R_cam_to_rect*Tr_velo_to_cam; %鍐呭鍙傛暟
 
 % load and display image
@@ -38,13 +39,19 @@ imshow(img); hold on;
 % load velodyne points
 fid = fopen(sprintf('%s/velodyne_points/data/%010d.bin',base_dir,frame),'rb');
 velo = fread(fid,[4 inf],'single')';
-
+velo = velo(1:5:end,:); % remove every 5th point for display speed
 fclose(fid);
-  
+
 % remove all points behind image plane (approximation
+xlswrite('Origin.xlsx',velo);
 idx = velo(:,1)<5;
 velo(idx,:) = [];
-xlswrite('Output.xlsx',velo);
+velo(velo(:,1)>20,:) = [];
+velo(velo(:,2)>20,:) = [];
+velo(velo(:,2)<5,:) = [];
+xlswrite('box.xlsx',velo);
+
+
 
 % project to image plane (exclude luminance)
 velo_img = project(velo(:,1:3),P_velo_to_img);
